@@ -537,6 +537,7 @@ onClick: async (e) => {
 
 
 // /tasks/public → PublicTasks
+/*
 function PublicTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -560,7 +561,7 @@ function PublicTasks() {
     setLoading(false);
   }
 
-  /* ================= TaskItem ================= */
+  // ================= TaskItem ================= 
     const TaskItem = (task) =>
   h('li', { key: task.id, className: 'task-item' },
     h('span', { className: 'task-title' }, task.title),
@@ -589,3 +590,77 @@ function PublicTasks() {
     h('ul', { className: 'task-list' }, tasks.map(TaskItem))
   );
 }
+*/
+
+
+async function fetchTasks() {
+  setLoading(true);
+
+  const { data, error } = await supabase
+    .from('tasks_new')
+    .select('id, title, pdf_url, created_at')   // nếu có cột pdf_path thì select thêm pdf_path
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    setMessage(error.message);
+    setTasks([]);
+  } else {
+    // Nếu pdf_url đang lưu đường dẫn tương đối (ví dụ: tasks-public/abc123.pdf)
+    // thì tạo lại URL public đầy đủ
+    const tasksWithPublicUrl = (data || []).map(task => {
+      let publicPdfUrl = task.pdf_url;
+
+      // Trường hợp 1: đã lưu full public URL → giữ nguyên
+      if (publicPdfUrl?.startsWith('http')) {
+        return { ...task, public_pdf_url: publicPdfUrl };
+      }
+
+      // Trường hợp 2: lưu đường dẫn tương đối trong bucket public
+      if (publicPdfUrl && !publicPdfUrl.startsWith('http')) {
+        // Thay 'tasks-public' bằng tên bucket thật của bạn nếu khác
+        const bucketName = 'tasks-public';
+        publicPdfUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${publicPdfUrl}`;
+      }
+
+      return {
+        ...task,
+        public_pdf_url: publicPdfUrl || null
+      };
+    });
+
+    setTasks(tasksWithPublicUrl);
+  }
+
+  setLoading(false);
+}
+
+/* ================= TaskItem ================= */
+const TaskItem = (task) =>
+  h('li', { key: task.id, className: 'task-item' },
+    h('span', { className: 'task-title' }, task.title),
+
+    task.public_pdf_url &&
+      h(
+        'a',
+        {
+          href: task.public_pdf_url,
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          download: '',           // muốn tự động download thì giữ, không thì bỏ dòng này
+          className: 'task-pdf'
+        },
+        'PDF'
+      )
+  );
+
+return h('div', null,
+  h('h2', null, 'Tasks + PDF'),
+
+  loading && h('p', null, 'Đang tải...'),
+  message && h('p', { style: { color: 'red' } }, message),
+
+  h('ul', { className: 'task-list' }, tasks.map(TaskItem))
+);
+
+
+
