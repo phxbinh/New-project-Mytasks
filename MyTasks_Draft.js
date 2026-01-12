@@ -73,7 +73,7 @@ async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
 }
 
 
-
+/*
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
   if (!oldData.path) return null;
 
@@ -92,6 +92,52 @@ async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
 
   return newData;
 }
+*/
+async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
+  if (!oldData.path) return null;
+
+  // Lấy tên file cũ từ path (ví dụ: "task123/1723456789.pdf" → "1723456789.pdf")
+  const oldFileName = oldData.path.split('/').pop();
+
+  // Download file cũ
+  const { data: fileBlob, error: downloadError } = await supabase.storage
+    .from(oldData.bucket)
+    .download(oldData.path);
+
+  if (downloadError) throw downloadError;
+
+  // Tạo path mới với cùng tên file (không cần timestamp mới)
+  const newPath = `${taskId}/${oldFileName}`;
+
+  const newBucket = newIsPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
+
+  // Upload Blob với tên file gốc
+  const { error: uploadError } = await supabase.storage
+    .from(newBucket)
+    .upload(newPath, fileBlob, {
+      upsert: false,  // hoặc true nếu muốn overwrite
+      contentType: 'application/pdf'
+    });
+
+  if (uploadError) throw uploadError;
+
+  // Lấy public URL nếu public
+  let newUrl = null;
+  if (newIsPublic) {
+    const { data } = supabase.storage.from(newBucket).getPublicUrl(newPath);
+    newUrl = data.publicUrl;
+  }
+
+  // Xóa file cũ
+  await supabase.storage.from(oldData.bucket).remove([oldData.path]);
+
+  return {
+    path: newPath,
+    url: newUrl,
+    bucket: newBucket
+  };
+}
+
 
 function MyTasks() {
   const [tasks, setTasks] = useState([]);
