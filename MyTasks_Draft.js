@@ -42,7 +42,7 @@ async function uploadPdf(file, taskId, isPublic = false) {
   return { path, url, bucket };
 }
 
-/*
+
 async function getSignedPdfUrl(pdfPath) {
   if (!pdfPath) return null;
 
@@ -56,8 +56,8 @@ async function getSignedPdfUrl(pdfPath) {
   }
   return data.signedUrl;
 }
-*/
 
+/*
 async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
   if (!pdfPath) return null;
 
@@ -71,7 +71,7 @@ async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
   }
   return data.signedUrl;
 }
-
+*/
 
 
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
