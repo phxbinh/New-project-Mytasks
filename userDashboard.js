@@ -1,6 +1,7 @@
 // ====================
 // Component Auth (Đăng nhập / Đăng ký)
 // ====================
+/*
 function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -114,10 +115,10 @@ const handleSubmit = async (e) => {
 
 
   } catch (err) {
-/*
-    const message = err.message || 'Có lỗi xảy ra, vui lòng thử lại sau.';
-    setError(message);
-*/
+
+    //const message = err.message || 'Có lỗi xảy ra, vui lòng thử lại sau.';
+    //setError(message);
+
     console.error('Auth error:', err);
 
 if (err.message?.includes('profiles_username_unique')) {
@@ -127,11 +128,6 @@ if (err.message?.includes('profiles_username_unique')) {
   } else {
     setError('Có lỗi xảy ra, vui lòng thử lại.');
   }
-
-
-
-
-
 
   } finally {
     setLoading(false);
@@ -289,6 +285,260 @@ if (err.message?.includes('profiles_username_unique')) {
     )
   );
 }
+*/
+
+
+
+// ====================
+// Component Auth (Đăng nhập / Đăng ký) — FIXED
+// ====================
+function AuthPage() {
+  const { h } = window.App.VDOM;
+  const { useState, useEffect } = window.App.Hooks;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [user, setUser] = useState(null);
+
+  // ====================
+  // Sync auth state (NO redirect here)
+  // ====================
+  useEffect(() => {
+    const { data: authListener } = window.supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    window.supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // ====================
+  // Helpers
+  // ====================
+  const checkUsernameUnique = async (username) => {
+    const trimmed = username.trim();
+    if (!trimmed) return false;
+
+    const { data, error } = await window.supabase
+      .from("profiles")
+      .select("username")
+      .eq("username", trimmed)
+      .maybeSingle();
+
+    if (error) throw error;
+    return !data;
+  };
+
+  // ====================
+  // Submit
+  // ====================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      // ── LOGIN ───────────────────────────
+      if (isLogin) {
+        const { error } = await window.supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+
+        if (error) throw error;
+
+        // ✅ Redirect ONLY here
+        navigateTo("/dashboard");
+        return;
+      }
+
+      // ── SIGNUP ──────────────────────────
+      const trimmedUsername = username.trim();
+      const trimmedFullName = fullName.trim();
+      const trimmedAvatar = avatarUrl?.trim() || "";
+
+      const isUsernameAvailable = await checkUsernameUnique(trimmedUsername);
+      if (!isUsernameAvailable) {
+        setError("Username đã được sử dụng.");
+        return;
+      }
+
+      const { error } = await window.supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            username: trimmedUsername,
+            full_name: trimmedFullName,
+            avatar_url: trimmedAvatar,
+          },
+          emailRedirectTo: `${window.location.origin}/welcome`,
+        },
+      });
+
+      if (error) throw error;
+
+      setSuccess("Đăng ký thành công! Vui lòng kiểm tra email.");
+      setUsername("");
+      setFullName("");
+      setAvatarUrl("");
+
+    } catch (err) {
+      console.error("Auth error:", err);
+
+      if (err.message?.includes("profiles_username_unique")) {
+        setError("Username đã được sử dụng.");
+      } else if (err.message?.includes("User already registered")) {
+        setError("Email đã được đăng ký.");
+      } else {
+        setError("Có lỗi xảy ra, vui lòng thử lại.");
+      }
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ====================
+  // Forgot password
+  // ====================
+  const handleForgotPassword = async () => {
+    if (!email) return alert("Vui lòng nhập email trước!");
+
+    const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset-password",
+    });
+
+    if (error) alert(error.message);
+    else alert("📩 Đã gửi email đặt lại mật khẩu!");
+  };
+
+  // ====================
+  // Logout
+  // ====================
+  const handleSignOut = async () => {
+    await window.supabase.auth.signOut();
+    setUser(null);
+    navigateTo("/auth");
+  };
+
+  // ====================
+  // Logged-in UI (NO auto redirect)
+  // ====================
+  if (user) {
+    return h("div", { style: { padding: "2rem", textAlign: "center" } },
+      h("h1", null, "Chào mừng bạn trở lại!"),
+      h("p", null, `Email: ${user.email}`),
+      h("button", {
+        onClick: handleSignOut,
+        style: { marginTop: "1rem" }
+      }, "Đăng xuất"),
+      h("br"), h("br"),
+      h(window.App.Router.Link, { to: "/dashboard" }, "Đi đến Dashboard")
+    );
+  }
+
+  // ====================
+  // Auth Form
+  // ====================
+  return h("div", {
+    style: {
+      maxWidth: "400px",
+      margin: "4rem auto",
+      padding: "2rem",
+      border: "1px solid #ccc",
+      borderRadius: "8px"
+    }
+  },
+    h("h2", { style: { textAlign: "center" } },
+      isLogin ? "Đăng nhập" : "Đăng ký"
+    ),
+
+    error && h("p", { style: { color: "red", textAlign: "center" } }, error),
+    success && h("p", { style: { color: "green", textAlign: "center" } }, success),
+
+    h("form", { onSubmit: handleSubmit },
+
+      h("input", {
+        type: "email",
+        placeholder: "Email",
+        value: email,
+        required: true,
+        disabled: loading,
+        onInput: e => setEmail(e.target.value)
+      }),
+
+      h("input", {
+        type: "password",
+        placeholder: "Mật khẩu",
+        value: password,
+        required: true,
+        disabled: loading,
+        onInput: e => setPassword(e.target.value)
+      }),
+
+      !isLogin && h("input", {
+        type: "text",
+        placeholder: "Username",
+        value: username,
+        required: true,
+        disabled: loading,
+        onInput: e => setUsername(e.target.value)
+      }),
+
+      h("button", { disabled: loading },
+        loading ? "Đang xử lý..." : (isLogin ? "Đăng nhập" : "Đăng ký")
+      )
+    ),
+
+    isLogin && h("p", { style: { textAlign: "center" } },
+      h("a", {
+        href: "#",
+        onClick: e => {
+          e.preventDefault();
+          handleForgotPassword();
+        }
+      }, "Quên mật khẩu?")
+    ),
+
+    h("p", { style: { textAlign: "center" } },
+      isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? ",
+      h("a", {
+        href: "#",
+        onClick: e => {
+          e.preventDefault();
+          setIsLogin(!isLogin);
+          setError("");
+          setSuccess("");
+        }
+      }, isLogin ? "Đăng ký" : "Đăng nhập")
+    )
+  );
+}
+
+
+
+
+
+
+
+
+
 
 
 // ====================
