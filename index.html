@@ -60,7 +60,7 @@
     for (const src of scripts) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        //script.type = 'module'; // rất quan trọng nếu file dùng import/export
+        script.type = 'module'; // rất quan trọng nếu file dùng import/export
         script.src = src;
         script.onload = () => {
           console.log(`Loaded: ${src}`);
