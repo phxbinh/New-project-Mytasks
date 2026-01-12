@@ -42,7 +42,6 @@ async function uploadPdf(file, taskId, isPublic = false) {
   return { path, url, bucket };
 }
 
-
 async function getSignedPdfUrl(pdfPath) {
   if (!pdfPath) return null;
 
@@ -56,23 +55,6 @@ async function getSignedPdfUrl(pdfPath) {
   }
   return data.signedUrl;
 }
-
-/*
-async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
-  if (!pdfPath) return null;
-
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(pdfPath, SIGNED_EXPIRATION);
-
-  if (error) {
-    console.error('Lỗi signed URL:', error.message, { path: pdfPath, bucket });
-    return null;
-  }
-  return data.signedUrl;
-}
-*/
-
 
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
   if (!oldData.path) return null;
@@ -92,54 +74,6 @@ async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
 
   return newData;
 }
-
-/* -> Error
-async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
-  if (!oldData.path) return null;
-
-  // Lấy tên file cũ từ path (ví dụ: "task123/1723456789.pdf" → "1723456789.pdf")
-  const oldFileName = oldData.path.split('/').pop();
-
-  // Download file cũ
-  const { data: fileBlob, error: downloadError } = await supabase.storage
-    .from(oldData.bucket)
-    .download(oldData.path);
-
-  if (downloadError) throw downloadError;
-
-  // Tạo path mới với cùng tên file (không cần timestamp mới)
-  const newPath = `${taskId}/${oldFileName}`;
-
-  const newBucket = newIsPublic ? PUBLIC_BUCKET : PRIVATE_BUCKET;
-
-  // Upload Blob với tên file gốc
-  const { error: uploadError } = await supabase.storage
-    .from(newBucket)
-    .upload(newPath, fileBlob, {
-      upsert: false,  // hoặc true nếu muốn overwrite
-      contentType: 'application/pdf'
-    });
-
-  if (uploadError) throw uploadError;
-
-  // Lấy public URL nếu public
-  let newUrl = null;
-  if (newIsPublic) {
-    const { data } = supabase.storage.from(newBucket).getPublicUrl(newPath);
-    newUrl = data.publicUrl;
-  }
-
-  // Xóa file cũ
-  await supabase.storage.from(oldData.bucket).remove([oldData.path]);
-
-  return {
-    path: newPath,
-    url: newUrl,
-    bucket: newBucket
-  };
-}
-*/
-
 
 function MyTasks() {
   const [tasks, setTasks] = useState([]);
@@ -424,7 +358,6 @@ function MyTasks() {
             task.pdf_path && h('a', {
               href: task.is_public_pdf ? task.pdf_url : '#',
               target: '_blank',
-              /*
               onClick: async (e) => {
                 if (!task.is_public_pdf) {
                   e.preventDefault();
@@ -432,17 +365,6 @@ function MyTasks() {
                   if (url) window.open(url, '_blank');
                 }
               },
-*/
-// Trong edit-mode (nếu có link "Xem PDF hiện tại")
-onClick: async (e) => {
-  if (!task.is_public_pdf) {
-    e.preventDefault();
-    const url = await getSignedPdfUrl(task.pdf_path, task.pdf_bucket);
-    if (url) window.open(url, '_blank');
-  }
-},
-
-
               class: 'current-pdf-link'
             }, 'Xem PDF hiện tại'),
 
@@ -456,7 +378,6 @@ onClick: async (e) => {
             task.pdf_path && h('a', {
               href: task.is_public_pdf ? task.pdf_url : '#',
               target: '_blank',
-              /*
               onClick: async (e) => {
                 if (!task.is_public_pdf) {
                   e.preventDefault();
@@ -464,15 +385,6 @@ onClick: async (e) => {
                   if (url) window.open(url, '_blank');
                 }
               },
-*/
-// Trong view-mode
-onClick: async (e) => {
-  if (!task.is_public_pdf) {
-    e.preventDefault();
-    const url = await getSignedPdfUrl(task.pdf_path, task.pdf_bucket);
-    if (url) window.open(url, '_blank');
-  }
-},
               class: 'pdf-link'
             }, '[PDF]')
           ),
@@ -539,7 +451,6 @@ onClick: async (e) => {
 
 
 // /tasks/public → PublicTasks
-/*
 function PublicTasks() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -563,7 +474,7 @@ function PublicTasks() {
     setLoading(false);
   }
 
-  // ================= TaskItem ================= 
+  /* ================= TaskItem ================= */
     const TaskItem = (task) =>
   h('li', { key: task.id, className: 'task-item' },
     h('span', { className: 'task-title' }, task.title),
@@ -592,77 +503,3 @@ function PublicTasks() {
     h('ul', { className: 'task-list' }, tasks.map(TaskItem))
   );
 }
-*/
-
-
-async function fetchTasks() {
-  setLoading(true);
-
-  const { data, error } = await supabase
-    .from('tasks_new')
-    .select('id, title, pdf_url, created_at')   // nếu có cột pdf_path thì select thêm pdf_path
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    setMessage(error.message);
-    setTasks([]);
-  } else {
-    // Nếu pdf_url đang lưu đường dẫn tương đối (ví dụ: tasks-public/abc123.pdf)
-    // thì tạo lại URL public đầy đủ
-    const tasksWithPublicUrl = (data || []).map(task => {
-      let publicPdfUrl = task.pdf_url;
-
-      // Trường hợp 1: đã lưu full public URL → giữ nguyên
-      if (publicPdfUrl?.startsWith('http')) {
-        return { ...task, public_pdf_url: publicPdfUrl };
-      }
-
-      // Trường hợp 2: lưu đường dẫn tương đối trong bucket public
-      if (publicPdfUrl && !publicPdfUrl.startsWith('http')) {
-        // Thay 'tasks-public' bằng tên bucket thật của bạn nếu khác
-        const bucketName = 'tasks-public';
-        publicPdfUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${publicPdfUrl}`;
-      }
-
-      return {
-        ...task,
-        public_pdf_url: publicPdfUrl || null
-      };
-    });
-
-    setTasks(tasksWithPublicUrl);
-  }
-
-  setLoading(false);
-}
-
-/* ================= TaskItem ================= */
-const TaskItem = (task) =>
-  h('li', { key: task.id, className: 'task-item' },
-    h('span', { className: 'task-title' }, task.title),
-
-    task.public_pdf_url &&
-      h(
-        'a',
-        {
-          href: task.public_pdf_url,
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          download: '',           // muốn tự động download thì giữ, không thì bỏ dòng này
-          className: 'task-pdf'
-        },
-        'PDF'
-      )
-  );
-
-return h('div', null,
-  h('h2', null, 'Tasks + PDF'),
-
-  loading && h('p', null, 'Đang tải...'),
-  message && h('p', { style: { color: 'red' } }, message),
-
-  h('ul', { className: 'task-list' }, tasks.map(TaskItem))
-);
-
-
-
