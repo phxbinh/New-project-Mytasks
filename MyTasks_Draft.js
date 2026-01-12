@@ -111,7 +111,7 @@ function MyTasks() {
     
     setLoading(true);
     const { data, error } = await supabase
-      .from('tasks')
+      .from('tasks_new')
       .select('id, title, completed, pdf_path, pdf_url, pdf_bucket, is_public_pdf, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -131,7 +131,7 @@ function MyTasks() {
       setLoading(true);
 
       const { data: task, error: insertError } = await supabase
-        .from('tasks')
+        .from('tasks_new')
         .insert({ title: newTitle.trim(), user_id: user.id })
         .select()
         .single();
@@ -145,7 +145,7 @@ function MyTasks() {
 
       if (pdfData) {
         await supabase
-          .from('tasks')
+          .from('tasks_new')
           .update({ 
             pdf_path: pdfData.path,
             pdf_url: pdfData.url,
@@ -201,7 +201,7 @@ function MyTasks() {
       }
 
       const { error } = await supabase
-        .from('tasks')
+        .from('tasks_new')
         .update({ 
           title: editTitle.trim(), 
           pdf_path: pdfData.path,
@@ -241,7 +241,7 @@ function MyTasks() {
       }
 
       const { error } = await supabase
-        .from('tasks')
+        .from('tasks_new')
         .delete()
         .eq('id', task.id)
         .eq('user_id', user.id);
@@ -264,7 +264,7 @@ function MyTasks() {
       const newCompleted = !task.completed;
       
       await supabase
-        .from('tasks')
+        .from('tasks_new')
         .update({ completed: newCompleted })
         .eq('id', task.id)
         .eq('user_id', user.id);
