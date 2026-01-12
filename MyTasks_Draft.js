@@ -42,6 +42,7 @@ async function uploadPdf(file, taskId, isPublic = false) {
   return { path, url, bucket };
 }
 
+/*
 async function getSignedPdfUrl(pdfPath) {
   if (!pdfPath) return null;
 
@@ -55,6 +56,23 @@ async function getSignedPdfUrl(pdfPath) {
   }
   return data.signedUrl;
 }
+*/
+
+async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
+  if (!pdfPath) return null;
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(pdfPath, SIGNED_EXPIRATION);
+
+  if (error) {
+    console.error('Lỗi signed URL:', error.message, { path: pdfPath, bucket });
+    return null;
+  }
+  return data.signedUrl;
+}
+
+
 
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
   if (!oldData.path) return null;
@@ -358,6 +376,7 @@ function MyTasks() {
             task.pdf_path && h('a', {
               href: task.is_public_pdf ? task.pdf_url : '#',
               target: '_blank',
+              /*
               onClick: async (e) => {
                 if (!task.is_public_pdf) {
                   e.preventDefault();
@@ -365,6 +384,17 @@ function MyTasks() {
                   if (url) window.open(url, '_blank');
                 }
               },
+*/
+// Trong edit-mode (nếu có link "Xem PDF hiện tại")
+onClick: async (e) => {
+  if (!task.is_public_pdf) {
+    e.preventDefault();
+    const url = await getSignedPdfUrl(task.pdf_path, task.pdf_bucket);
+    if (url) window.open(url, '_blank');
+  }
+},
+
+
               class: 'current-pdf-link'
             }, 'Xem PDF hiện tại'),
 
@@ -378,6 +408,7 @@ function MyTasks() {
             task.pdf_path && h('a', {
               href: task.is_public_pdf ? task.pdf_url : '#',
               target: '_blank',
+              /*
               onClick: async (e) => {
                 if (!task.is_public_pdf) {
                   e.preventDefault();
@@ -385,6 +416,15 @@ function MyTasks() {
                   if (url) window.open(url, '_blank');
                 }
               },
+*/
+// Trong view-mode
+onClick: async (e) => {
+  if (!task.is_public_pdf) {
+    e.preventDefault();
+    const url = await getSignedPdfUrl(task.pdf_path, task.pdf_bucket);
+    if (url) window.open(url, '_blank');
+  }
+},
               class: 'pdf-link'
             }, '[PDF]')
           ),
