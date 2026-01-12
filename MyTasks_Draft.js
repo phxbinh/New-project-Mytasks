@@ -73,7 +73,7 @@ async function getSignedPdfUrl(pdfPath, bucket = PRIVATE_BUCKET) {
 }
 
 
-/*
+
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
   if (!oldData.path) return null;
 
@@ -92,7 +92,8 @@ async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
 
   return newData;
 }
-*/
+
+/* -> Error
 async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
   if (!oldData.path) return null;
 
@@ -137,6 +138,7 @@ async function movePdfToNewBucket(oldData, newIsPublic, taskId) {
     bucket: newBucket
   };
 }
+*/
 
 
 function MyTasks() {
