@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Framework + Supabase + vercel</title>
+
+<!-- Dùng cho appp.js --
+<link rel="stylesheet" href="tasks.css">
+<!---->
+
+<!-- Dùng cho MyTasks.js -->
+<link rel="stylesheet" href="TasksStyle.css">
+<!---->
+
+<!-- Dùng cho PublicTasks.js -->
+<link rel="stylesheet" href="PublicTasks.css">
+<!---->
+
+
+  <style>
+
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+<!-- Framework -->
+<script src="./framework/Debugger.js"></script>
+<script src="./framework/vdom.js"></script>
+<script src="./framework/hooks.js"></script>
+<script src="./framework/router.js"></script>
+<script src="./framework/init_API.js"></script>
+<!---->
+
+
+<!-- INIT SUPABASE TRƯỚC -->
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+  window.supabase = createClient(
+    'https://defkqhylqphoqiikvbii.supabase.co',
+    'sb_publishable_vzdQpgqjLL2VE0Oyc0kEJQ_P8XqBwkh'
+  );
+
+  console.log('Supabase READY');
+
+  // 🚀 SAU KHI SUPABASE READY → LOAD APP
+
+  const script = document.createElement('script');
+  // Đăng nhập và chỉnh sửa thông tin user
+  script.src = 'userDashboard.js'; 
+  document.body.appendChild(script);
+
+  // Home - Navbar - Routes
+  script.src = 'Home.js'; 
+  document.body.appendChild(script);
+  
+  //script.src = 'test.js';
+  //script.src = 'app.js';
+  //script.src = 'appp.js';
+
+  // Test db cho user logined success
+  script.src = 'MyTasks.js';
+  
+  document.body.appendChild(script);
+  
+  
+</script>
+<!---->
+
+</body>
+</html>
+
+<!----
+https://framework-frontend-vdom-v01.vercel.app/postsnew
+<!---->
