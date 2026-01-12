@@ -30,7 +30,7 @@
 <script src="./framework/vdom.js"></script>
 <script src="./framework/hooks.js"></script>
 <script src="./framework/router.js"></script>
-<!----
+<!---->
 <script src="./framework/init_API.js"></script>
 <!---->
 
@@ -51,11 +51,11 @@
   // Cách load script theo thứ tự và chờ nhau (cách đơn giản nhất)
   async function loadScriptsInOrder() {
     const scripts = [
-      './framework/init_API.js',
       'userDashboard.js',   // đăng nhập + user info trước
       'MyTasks.js',         // cần user để test db
       'Home.js'             // routing + UI cuối cùng
     ];
+//      './framework/init_API.js',
 
     for (const src of scripts) {
       await new Promise((resolve, reject) => {
