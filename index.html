@@ -51,7 +51,7 @@
   // Cách load script theo thứ tự và chờ nhau (cách đơn giản nhất)
   async function loadScriptsInOrder() {
     const scripts = [
-      "./framework/init_API.js",
+      './framework/init_API.js',
       'userDashboard.js',   // đăng nhập + user info trước
       'MyTasks.js',         // cần user để test db
       'Home.js'             // routing + UI cuối cùng
@@ -60,7 +60,7 @@
     for (const src of scripts) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.type = 'module'; // rất quan trọng nếu file dùng import/export
+        //script.type = 'module'; // rất quan trọng nếu file dùng import/export
         script.src = src;
         script.onload = () => {
           console.log(`Loaded: ${src}`);
